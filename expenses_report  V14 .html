@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>Expenses Report</title>
+    <link rel="manifest" href="">
+    <script src="https://unpkg.com/tesseract.js@v5.1.0/dist/tesseract.min.js"></script>
+    <style>
+        :root {
+            --primary: #4B5EAA;
+            --primary-gradient: linear-gradient(135deg, #6B7280, #4B5EAA);
+            --secondary: #60A5FA;
+            --accent: #34D399;
+            --light: #F9FAFB;
+            --dark: #1F2937;
+            --danger: #F87171;
+            --success: #34D399;
+            --text-secondary: #6B7280;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--light);
+            color: var(--dark);
+            line-height: 1.6;
+            overscroll-behavior: none;
+            display: flex; /* OPTIMIZATION: For sticky footer */
+            flex-direction: column; /* OPTIMIZATION: For sticky footer */
+            min-height: 100vh; /* OPTIMIZATION: For sticky footer */
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 15px;
+        }
+
+        header {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        header .container { /* OPTIMIZATION: Ensure header container content aligns nicely */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+
+        h1 { font-size: 1.5rem; font-weight: 600; }
+        h2 { font-size: 1.2rem; margin-bottom: 10px; font-weight: 500; }
+
+        .card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .section-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #E5E7EB;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+            background-color: #F9FAFB;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--secondary);
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
+        }
+
+        .btn {
+            background-color: var(--secondary);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            touch-action: manipulation;
+            width: 100%;
+            margin-bottom: 10px;
+            display: inline-flex; /* OPTIMIZATION: For icon alignment */
+            align-items: center; /* OPTIMIZATION: For icon alignment */
+            justify-content: center; /* OPTIMIZATION: For icon alignment */
+            gap: 8px; /* OPTIMIZATION: Space between icon and text */
+        }
+        .btn svg { /* OPTIMIZATION: Style for icons in buttons */
+            width: 1em;
+            height: 1em;
+            fill: currentColor;
+        }
+
+        .btn:hover { background-color: #3B82F6; }
+        .btn:active { transform: scale(0.98); }
+        .btn-danger { background-color: var(--danger); }
+        .btn-danger:hover { background-color: #EF4444; }
+        .btn-success { background-color: var(--success); }
+        .btn-success:hover { background-color: #10B981; }
+        .btn-scan { background-color: #A78BFA; }
+        .btn-scan:hover { background-color: #8B5CF6; }
+        
+        /* OPTIMIZATION: Smaller icon buttons for tables */
+        .btn-icon {
+            padding: 6px 8px;
+            width: auto; /* Override 100% for small icon buttons */
+            font-size: 0.8rem;
+            margin-bottom: 0; /* Remove bottom margin for table buttons */
+        }
+        .btn-icon svg {
+            margin-right: 0; /* No margin if icon only or handled by gap */
+        }
+        .table-actions { /* OPTIMIZATION: Container for table action buttons */
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap; /* Ensure buttons wrap if space is tight */
+        }
+
+
+        .form-row { display: flex; flex-wrap: wrap; gap: 10px; }
+        .form-group { flex: 1; min-width: 200px; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        th, td {
+            padding: 8px;
+            border-bottom: 1px solid #E5E7EB;
+            text-align: left;
+            vertical-align: middle; /* OPTIMIZATION: Better alignment */
+        }
+
+        th {
+            background-color: #F9FAFB;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .tax-summary {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .tax-summary-item {
+            flex: 1;
+            min-width: 150px;
+            padding: 10px;
+            background-color: #F9FAFB;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .tax-summary-item h3 { color: var(--text-secondary); font-size: 0.9rem; }
+        .tax-summary-item .amount { font-size: 1.2rem; font-weight: 600; color: var(--dark); }
+        .tax-summary-item.income { border-top: 2px solid var(--success); }
+        .tax-summary-item.expenses { border-top: 2px solid var(--danger); }
+        .tax-summary-item.profit { border-top: 2px solid var(--accent); }
+
+        .toggle-section {
+            background: none;
+            border: none;
+            color: var(--secondary);
+            cursor: pointer;
+            font-size: 1.2rem; /* Adjust size as needed */
+            padding: 5px; /* Add some padding for easier clicking */
+        }
+        .toggle-section svg { /* OPTIMIZATION: Style for toggle icons */
+            width: 1.2em;
+            height: 1.2em;
+            transition: transform 0.2s ease-in-out;
+        }
+        .toggle-section.collapsed svg {
+            transform: rotate(-90deg);
+        }
+
+
+        .hidden { display: none; }
+
+        .actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+        header .actions .btn { flex-grow: 1; min-width: 100px;} /* OPTIMIZATION: Make header buttons share space */
+
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            overflow-y: auto; /* OPTIMIZATION: Ensure modal content is scrollable if it exceeds viewport */
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto; /* OPTIMIZATION: Reduced top margin for better view on smaller screens */
+            padding: 15px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .modal-content h2 { text-align: center; } /* OPTIMIZATION: Center modal titles */
+
+        .close {
+            color: #9CA3AF;
+            float: right;
+            font-size: 24px; /* OPTIMIZATION: Slightly larger close icon */
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .close:hover { color: var(--dark); }
+
+        .loading {
+            display: none;
+            margin: 10px 0;
+            text-align: center;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        .loading::after {
+            content: 'Processing...';
+            animation: dots 1.5s infinite;
+        }
+
+        @keyframes dots {
+            0% { content: 'Processing...'; }
+            33% { content: 'Processing.'; }
+            66% { content: 'Processing..'; }
+        }
+
+        main { /* OPTIMIZATION: Added main wrapper for content to help with sticky footer */
+            flex-grow: 1;
+        }
+
+        footer { /* ADDED: Footer styling */
+            text-align: center;
+            padding: 20px 15px;
+            margin-top: 30px;
+            background-color: #e9ecef; /* A slightly different light shade */
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            border-top: 1px solid #dee2e6;
+        }
+
+
+        @media (max-width: 768px) {
+            .form-group { flex: 100%; }
+            .tax-summary-item { min-width: 100%; }
+            table { font-size: 0.75rem; }
+            th, td { padding: 6px; }
+            header .actions { flex-direction: column; width: 100%;} /* Stack header buttons on small screens */
+            header .actions .btn { margin-bottom: 10px; }
+        }
+
+        @media (max-width: 480px) {
+            h1 { font-size: 1.3rem; }
+            .card { padding: 10px; }
+            .btn { padding: 10px 12px; font-size: 0.85rem; } /* Adjusted padding for smaller buttons */
+            .modal-content { margin: 10% auto; }
+            footer p { font-size: 0.75rem; } /* Ensure footer text is readable on small screens */
+        }
+    </style>
+</head>
+<body>
+    <!-- SVG Icons Definition (Hidden) -->
+    <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+        <symbol id="icon-save" viewBox="0 0 16 16">
+            <path d="M2 1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H9.5a1 1 0 0 0-1 1v2.5h-2V2a1 1 0 0 0-1-1H2zm7 0v2.5H7V1h2zM3 13V3h2v2.5a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1V3h2v10H3z"/>
+        </symbol>
+        <symbol id="icon-load" viewBox="0 0 16 16">
+            <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+            <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/>
+        </symbol>
+        <symbol id="icon-clear" viewBox="0 0 16 16">
+            <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
+            <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+        </symbol>
+        <symbol id="icon-edit" viewBox="0 0 16 16">
+            <path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3zm-9.66 9.56a.5.5 0 0 0-.353.146L.146 12.854a.5.5 0 0 0 0 .707l3 3a.5.5 0 0 0 .707 0l2.646-2.647a.5.5 0 0 0 .146-.353V10.5H3.194v-.793zM11.854 2.854 5.5 9.207 4.793 10.5H2.5v2.293L8.793 16.5 15.146 10.146 11.854 2.854z"/>
+        </symbol>
+        <symbol id="icon-delete" viewBox="0 0 16 16"> <!-- Same as icon-clear for this example, but you can differentiate -->
+            <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
+            <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+        </symbol>
+        <symbol id="icon-view" viewBox="0 0 16 16">
+            <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>
+            <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>
+        </symbol>
+        <symbol id="icon-camera" viewBox="0 0 16 16">
+             <path d="M15 12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h1.172a3 3 0 0 0 2.12-.879l.83-.828A1 1 0 0 1 6.827 3h2.346a1 1 0 0 1 .707.293l.828.828A3 3 0 0 0 12.828 5H14a1 1 0 0 1 1 1zM2.5 4a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3m11.5 8a.5.5 0 0 0 .5-.5V7a.5.5 0 0 0-.5-.5h-1.586l-.707-.707A1 1 0 0 0 11 5.5H5a1 1 0 0 0-.707.293l-.707.707H2a.5.5 0 0 0-.5.5v4.5a.5.5 0 0 0 .5.5z"/>
+        </symbol>
+        <symbol id="icon-chevron-down" viewBox="0 0 16 16">
+            <path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
+        </symbol>
+    </svg>
+
+    <header>
+        <div class="container">
+            <h1>Expenses Report</h1>
+            <div class="actions">
+                <!-- OPTIMIZATION: Added icons to header buttons -->
+                <button class="btn" id="save-btn"><svg><use xlink:href="#icon-save"></use></svg>Save</button>
+                <button class="btn" id="load-btn"><svg><use xlink:href="#icon-load"></use></svg>Load</button>
+                <button class="btn btn-danger" id="clear-btn"><svg><use xlink:href="#icon-clear"></use></svg>Clear All</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container"> <!-- OPTIMIZATION: Wrapped content in main -->
+        <div class="card">
+            <div class="section-title">
+                <h2>Basic Information</h2>
+                <!-- OPTIMIZATION: Changed toggle to icon -->
+                <button class="toggle-section" data-target="basic-info-content" aria-expanded="true" aria-label="Toggle Basic Information">
+                    <svg><use xlink:href="#icon-chevron-down"></use></svg>
+                </button>
+            </div>
+            <div id="basic-info-content">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="tax-year">Tax Year</label>
+                        <input type="number" id="tax-year" value="2025">
+                    </div>
+                    <div class="form-group">
+                        <label for="business-name">Business Name</label>
+                        <input type="text" id="business-name" placeholder="e.g., John Doe Consulting">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="gst-number">GST Number</label>
+                        <input type="text" id="gst-number" placeholder="e.g., 123456789RT0001">
+                    </div>
+                    <div class="form-group">
+                        <label for="qst-number">QST Number</label>
+                        <input type="text" id="qst-number" placeholder="e.g., 0123456789TQ0001">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="section-title">
+                <h2>Revenue</h2>
+                <button class="toggle-section" data-target="revenue-content" aria-expanded="true" aria-label="Toggle Revenue">
+                    <svg><use xlink:href="#icon-chevron-down"></use></svg>
+                </button>
+            </div>
+            <div id="revenue-content">
+                <table id="revenue-table">
+                    <thead>
+                        <tr>
+                            <th>No.</th>
+                            <th>Payment Method</th>
+                            <th>Amount</th>
+                            <th>Date</th>
+                            <th class="no-print">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                    <tfoot>
+                        <tr>
+                            <td></td>
+                            <td><strong>Total</strong></td>
+                            <td id="revenue-total">$0.00</td>
+                            <td></td>
+                            <td class="no-print"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+                <div class="actions no-print">
+                    <button class="btn" id="add-revenue-btn">Add Revenue</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="section-title">
+                <h2>Expenses</h2>
+                <button class="toggle-section" data-target="expenses-content" aria-expanded="true" aria-label="Toggle Expenses">
+                    <svg><use xlink:href="#icon-chevron-down"></use></svg>
+                </button>
+            </div>
+            <div id="expenses-content">
+                <table id="expenses-table">
+                    <thead>
+                        <tr>
+                            <th>No.</th>
+                            <th>Category</th>
+                            <th>Amount</th>
+                            <th>Date</th>
+                            <th class="no-print">Actions</th>
+                            <th class="no-print">Scan</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                    <tfoot>
+                        <tr>
+                            <td></td>
+                            <td><strong>Total</strong></td>
+                            <td id="expenses-total">$0.00</td>
+                            <td></td>
+                            <td class="no-print"></td>
+                            <td class="no-print"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+                <div class="actions no-print">
+                    <button class="btn" id="add-expense-btn">Add Expense</button>
+                    <button class="btn btn-scan" id="scan-expense-btn">
+                        <svg><use xlink:href="#icon-camera"></use></svg>
+                        Scan Expense
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="section-title">
+                <h2>Tax Summary</h2>
+                <button class="toggle-section" data-target="summary-content" aria-expanded="true" aria-label="Toggle Tax Summary">
+                    <svg><use xlink:href="#icon-chevron-down"></use></svg>
+                </button>
+            </div>
+            <div id="summary-content">
+                <div class="tax-summary">
+                    <div class="tax-summary-item income"><h3>Total Revenue</h3><div class="amount" id="summary-revenue">$0.00</div></div>
+                    <div class="tax-summary-item expenses"><h3>Total Expenses</h3><div class="amount" id="summary-expenses">$0.00</div></div>
+                    <div class="tax-summary-item profit"><h3>Net Income</h3><div class="amount" id="summary-income">$0.00</div></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Revenue Modal -->
+    <div id="revenue-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="close-revenue-modal" aria-label="Close modal">×</span>
+            <h2 id="revenue-modal-title">Add Revenue</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="revenue-payment">Payment Method</label>
+                    <select id="revenue-payment">
+                        <option value="Check">Check</option>
+                        <option value="Interac">Interac</option>
+                        <option value="Cash">Cash</option>
+                        <option value="Credit">Credit Card</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="revenue-amount">Amount (CAD)</label>
+                    <input type="number" id="revenue-amount" step="0.01" min="0">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="revenue-date">Date</label>
+                    <input type="date" id="revenue-date">
+                </div>
+            </div>
+            <input type="hidden" id="revenue-index" value="-1">
+            <div class="actions">
+                <button class="btn btn-success" id="save-revenue-btn"><svg><use xlink:href="#icon-save"></use></svg>Save</button>
+                <button class="btn btn-danger" id="cancel-revenue-btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Expense Modal -->
+    <div id="expense-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="close-expense-modal" aria-label="Close modal">×</span>
+            <h2 id="expense-modal-title">Add Expense</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="expense-category">Category</label>
+                    <select id="expense-category">
+                        <option value="Fuel Expenses|100">Fuel Expenses (100%)</option>
+                        <option value="Restaurant/Protocol|50">Restaurant/Protocol (50%)</option>
+                        <option value="Office Expenses|100">Office Expenses (100%)</option>
+                        <option value="Hotel|100">Hotel (100%)</option>
+                        <option value="Dental|100">Dental (100%)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="expense-amount">Amount (CAD)</label>
+                    <input type="number" id="expense-amount" step="0.01" min="0">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="expense-date">Date</label>
+                    <input type="date" id="expense-date">
+                </div>
+            </div>
+            <input type="hidden" id="expense-index" value="-1">
+            <div class="actions">
+                <button class="btn btn-success" id="save-expense-btn"><svg><use xlink:href="#icon-save"></use></svg>Save</button>
+                <button class="btn btn-danger" id="cancel-expense-btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scan Expense Modal -->
+    <div id="scan-expense-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="close-scan-expense-modal" aria-label="Close modal">×</span>
+            <h2>Scan Expense</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="scan-expense-file">Capture or Upload Bill</label>
+                    <input type="file" id="scan-expense-file" accept="image/*" capture="environment">
+                </div>
+            </div>
+            <div class="loading" id="ocr-loading">Processing...</div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="scan-expense-category">Category</label>
+                    <select id="scan-expense-category">
+                        <option value="Fuel Expenses|100">Fuel Expenses (100%)</option>
+                        <option value="Restaurant/Protocol|50">Restaurant/Protocol (50%)</option>
+                        <option value="Office Expenses|100">Office Expenses (100%)</option>
+                        <option value="Hotel|100">Hotel (100%)</option>
+                        <option value="Dental|100">Dental (100%)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="scan-expense-amount">Amount (CAD)</label>
+                    <input type="number" id="scan-expense-amount" step="0.01" min="0">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="scan-expense-date">Date</label>
+                    <input type="date" id="scan-expense-date">
+                </div>
+            </div>
+            <div class="actions">
+                <button class="btn btn-success" id="save-scan-btn"><svg><use xlink:href="#icon-save"></use></svg>Save</button>
+                <button class="btn btn-danger" id="cancel-scan-btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Scan Modal -->
+    <div id="view-scan-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="close-view-scan-modal" aria-label="Close modal">×</span>
+            <h2>Scanned Bill</h2>
+            <img id="scanned-image" style="max-width: 100%; border-radius: 4px;" src="" alt="Scanned Bill">
+            <div class="actions">
+                <button class="btn btn-danger" id="close-view-scan-btn">Close</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ADDED: Footer for copyright -->
+    <footer>
+        <p>© <span id="current-year"></span> Florentin Irimia. All rights reserved. Unauthorized use, reproduction, or distribution of this application or its content is strictly prohibited and may only be done with prior written approval from Florentin Irimia.</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // ADDED: Set current year in footer
+            document.getElementById('current-year').textContent = new Date().getFullYear();
+
+            let revenueData = JSON.parse(localStorage.getItem('revenueData')) || [];
+            let expensesData = JSON.parse(localStorage.getItem('expensesData')) || [];
+            let revenueIdCounter = revenueData.length ? Math.max(...revenueData.map(e => e.id)) + 1 : 1;
+            let expenseIdCounter = expensesData.length ? Math.max(...expensesData.map(e => e.id)) + 1 : 1;
+
+            let db;
+            const request = indexedDB.open("ExpenseScansDB", 1);
+            request.onerror = () => console.error("IndexedDB error");
+            request.onsuccess = event => {
+                db = event.target.result;
+                loadScansOnStartup();
+            };
+            request.onupgradeneeded = event => {
+                db = event.target.result;
+                const store = db.createObjectStore("scans", { keyPath: "expenseId" });
+                store.createIndex("category", "category", { unique: false });
+            };
+
+            document.querySelectorAll('.toggle-section').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const target = document.getElementById(btn.dataset.target);
+                    const isHidden = target.classList.toggle('hidden');
+                    btn.setAttribute('aria-expanded', !isHidden);
+                    // OPTIMIZATION: Toggle class for chevron rotation
+                    btn.classList.toggle('collapsed', isHidden);
+                });
+                 // OPTIMIZATION: Initialize chevron state based on content visibility
+                const target = document.getElementById(btn.dataset.target);
+                if (target.classList.contains('hidden')) {
+                    btn.classList.add('collapsed');
+                    btn.setAttribute('aria-expanded', 'false');
+                } else {
+                    btn.classList.remove('collapsed');
+                     btn.setAttribute('aria-expanded', 'true');
+                }
+            });
+
+            document.getElementById('save-btn').addEventListener('click', () => {
+                const data = {
+                    taxYear: document.getElementById('tax-year').value,
+                    businessName: document.getElementById('business-name').value,
+                    gstNumber: document.getElementById('gst-number').value,
+                    qstNumber: document.getElementById('qst-number').value,
+                    revenueData,
+                    expensesData
+                };
+                localStorage.setItem(`reportData_${data.taxYear}`, JSON.stringify(data));
+                localStorage.setItem('revenueData', JSON.stringify(revenueData));
+                localStorage.setItem('expensesData', JSON.stringify(expensesData));
+                alert('Data saved.');
+            });
+
+            document.getElementById('load-btn').addEventListener('click', () => {
+                const year = document.getElementById('tax-year').value;
+                const data = localStorage.getItem(`reportData_${year}`);
+                if (data) {
+                    const parsed = JSON.parse(data);
+                    document.getElementById('business-name').value = parsed.businessName || '';
+                    document.getElementById('gst-number').value = parsed.gstNumber || '';
+                    document.getElementById('qst-number').value = parsed.qstNumber || '';
+                    revenueData = parsed.revenueData || [];
+                    expensesData = parsed.expensesData || [];
+                    updateRevenueTable();
+                    updateExpensesTable();
+                    alert('Data loaded.');
+                } else {
+                    alert('No data found for this year.');
+                }
+            });
+
+            document.getElementById('clear-btn').addEventListener('click', () => {
+                if (confirm('Are you sure you want to clear all data and scans? This action cannot be undone.')) { // OPTIMIZATION: More descriptive confirm message
+                    if (db) { // Check if db is initialized
+                        const transaction = db.transaction(["scans"], "readwrite");
+                        transaction.objectStore("scans").clear();
+                        transaction.onerror = (event) => console.error("Error clearing scans DB:", event.target.error);
+                    }
+                    revenueData = [];
+                    expensesData = [];
+                    revenueIdCounter = 1;
+                    expenseIdCounter = 1;
+                    document.getElementById('business-name').value = '';
+                    document.getElementById('gst-number').value = '';
+                    document.getElementById('qst-number').value = '';
+                    document.getElementById('tax-year').value = new Date().getFullYear() + 1; // Reset to next year
+                    localStorage.removeItem(`reportData_${document.getElementById('tax-year').value}`);
+                    localStorage.removeItem('revenueData');
+                    localStorage.removeItem('expensesData');
+                    updateRevenueTable();
+                    updateExpensesTable();
+                    alert('All data and scans cleared.');
+                }
+            });
+
+            function updateRevenueTable() {
+                const tbody = document.querySelector('#revenue-table tbody');
+                tbody.innerHTML = '';
+                let totalAmount = 0;
+                revenueData.forEach((entry, idx) => {
+                    const row = document.createElement('tr');
+                    // OPTIMIZATION: Icon buttons for table actions
+                    row.innerHTML = `
+                        <td>${idx + 1}</td>
+                        <td>${entry.paymentMethod}</td>
+                        <td>$${entry.amount.toFixed(2)}</td>
+                        <td>${entry.date}</td>
+                        <td class="no-print table-actions">
+                            <button class="btn btn-icon" onclick="editRevenue(${idx})" aria-label="Edit Revenue"><svg><use xlink:href="#icon-edit"></use></svg></button>
+                            <button class="btn btn-icon btn-danger" onclick="deleteRevenue(${idx})" aria-label="Delete Revenue"><svg><use xlink:href="#icon-delete"></use></svg></button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                    totalAmount += entry.amount;
+                });
+                document.getElementById('revenue-total').textContent = `$${totalAmount.toFixed(2)}`;
+                updateSummary();
+            }
+
+            window.editRevenue = idx => {
+                const entry = revenueData[idx];
+                document.getElementById('revenue-payment').value = entry.paymentMethod;
+                document.getElementById('revenue-amount').value = entry.amount;
+                document.getElementById('revenue-date').value = entry.date;
+                document.getElementById('revenue-index').value = idx;
+                document.getElementById('revenue-modal-title').textContent = 'Edit Revenue';
+                document.getElementById('revenue-modal').style.display = 'block';
+            };
+
+            window.deleteRevenue = idx => {
+                if (confirm('Are you sure you want to delete this revenue entry?')) {
+                    revenueData.splice(idx, 1);
+                    updateRevenueTable();
+                }
+            };
+
+            document.getElementById('add-revenue-btn').addEventListener('click', () => {
+                document.getElementById('revenue-modal-title').textContent = 'Add Revenue';
+                document.getElementById('revenue-index').value = '-1';
+                document.getElementById('revenue-payment').value = 'Check';
+                document.getElementById('revenue-amount').value = '';
+                document.getElementById('revenue-date').value = new Date().toISOString().split('T')[0];
+                document.getElementById('revenue-modal').style.display = 'block';
+                document.getElementById('revenue-amount').focus(); // OPTIMIZATION: Focus first field
+            });
+
+            document.getElementById('close-revenue-modal').addEventListener('click', () => document.getElementById('revenue-modal').style.display = 'none');
+            document.getElementById('cancel-revenue-btn').addEventListener('click', () => document.getElementById('revenue-modal').style.display = 'none');
+            document.getElementById('save-revenue-btn').addEventListener('click', () => {
+                const paymentMethod = document.getElementById('revenue-payment').value;
+                const amount = parseFloat(document.getElementById('revenue-amount').value);
+                const date = document.getElementById('revenue-date').value;
+                const idx = parseInt(document.getElementById('revenue-index').value);
+
+                if (isNaN(amount) || amount <= 0) {
+                     alert('Please enter a valid positive amount.');
+                     document.getElementById('revenue-amount').focus();
+                     return;
+                }
+                if (!date) {
+                    alert('Please select a date.');
+                    document.getElementById('revenue-date').focus();
+                    return;
+                }
+                let entry = { paymentMethod, amount, date };
+
+                if (idx === -1) {
+                    entry.id = revenueIdCounter++;
+                    revenueData.push(entry);
+                } else {
+                    entry.id = revenueData[idx].id;
+                    revenueData[idx] = entry;
+                }
+
+                document.getElementById('revenue-modal').style.display = 'none';
+                updateRevenueTable();
+            });
+
+            function updateExpensesTable() {
+                const tbody = document.querySelector('#expenses-table tbody');
+                tbody.innerHTML = '';
+                let totalAmount = 0;
+                expensesData.forEach((entry, idx) => {
+                    const row = document.createElement('tr');
+                    // OPTIMIZATION: Icon buttons for table actions
+                    row.innerHTML = `
+                        <td>${idx + 1}</td>
+                        <td>${entry.category}</td>
+                        <td>$${entry.amount.toFixed(2)}</td>
+                        <td>${entry.date}</td>
+                        <td class="no-print table-actions">
+                            <button class="btn btn-icon" onclick="editExpense(${idx})" aria-label="Edit Expense"><svg><use xlink:href="#icon-edit"></use></svg></button>
+                            <button class="btn btn-icon btn-danger" onclick="deleteExpense(${idx})" aria-label="Delete Expense"><svg><use xlink:href="#icon-delete"></use></svg></button>
+                        </td>
+                        <td class="no-print">
+                            ${entry.hasScan ? `<button class="btn btn-icon btn-scan" onclick="viewScan(${entry.id})" aria-label="View Scan"><svg><use xlink:href="#icon-view"></use></svg></button>` : 'No Scan'}
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                    totalAmount += entry.amount;
+                });
+                document.getElementById('expenses-total').textContent = `$${totalAmount.toFixed(2)}`;
+                updateSummary();
+            }
+
+            window.editExpense = idx => {
+                const entry = expensesData[idx];
+                document.getElementById('expense-category').value = `${entry.category}|${entry.deductiblePercentage}`;
+                document.getElementById('expense-amount').value = entry.amount;
+                document.getElementById('expense-date').value = entry.date;
+                document.getElementById('expense-index').value = idx;
+                document.getElementById('expense-modal-title').textContent = 'Edit Expense';
+                document.getElementById('expense-modal').style.display = 'block';
+            };
+
+            window.deleteExpense = idx => {
+                if (confirm('Are you sure you want to delete this expense entry and its associated scan (if any)?')) {
+                    const expense = expensesData[idx];
+                    if (expense.hasScan && db) { // Check if db is initialized
+                        const transaction = db.transaction(["scans"], "readwrite");
+                        const store = transaction.objectStore("scans");
+                        store.delete(expense.id);
+                        transaction.onerror = (event) => console.error("Error deleting scan from DB:", event.target.error);
+                    }
+                    expensesData.splice(idx, 1);
+                    updateExpensesTable();
+                }
+            };
+
+            document.getElementById('add-expense-btn').addEventListener('click', () => {
+                document.getElementById('expense-modal-title').textContent = 'Add Expense';
+                document.getElementById('expense-index').value = '-1';
+                document.getElementById('expense-category').value = 'Fuel Expenses|100';
+                document.getElementById('expense-amount').value = '';
+                document.getElementById('expense-date').value = new Date().toISOString().split('T')[0];
+                document.getElementById('expense-modal').style.display = 'block';
+                document.getElementById('expense-amount').focus(); // OPTIMIZATION: Focus first field
+            });
+
+            document.getElementById('close-expense-modal').addEventListener('click', () => document.getElementById('expense-modal').style.display = 'none');
+            document.getElementById('cancel-expense-btn').addEventListener('click', () => document.getElementById('expense-modal').style.display = 'none');
+            document.getElementById('save-expense-btn').addEventListener('click', () => {
+                const [category, deductiblePercentage] = document.getElementById('expense-category').value.split('|');
+                const amount = parseFloat(document.getElementById('expense-amount').value);
+                const date = document.getElementById('expense-date').value;
+                const idx = parseInt(document.getElementById('expense-index').value);
+
+                if (isNaN(amount) || amount <= 0) {
+                     alert('Please enter a valid positive amount.');
+                     document.getElementById('expense-amount').focus();
+                     return;
+                }
+                 if (!date) {
+                    alert('Please select a date.');
+                    document.getElementById('expense-date').focus();
+                    return;
+                }
+                let entry = { category, amount, deductiblePercentage: parseInt(deductiblePercentage), date };
+
+                if (idx === -1) {
+                    entry.id = expenseIdCounter++;
+                    entry.hasScan = false;
+                    expensesData.push(entry);
+                } else {
+                    entry.id = expensesData[idx].id;
+                    entry.hasScan = expensesData[idx].hasScan;
+                    expensesData[idx] = entry;
+                }
+
+                document.getElementById('expense-modal').style.display = 'none';
+                updateExpensesTable();
+            });
+
+            document.getElementById('scan-expense-btn').addEventListener('click', () => {
+                document.getElementById('scan-expense-file').value = '';
+                document.getElementById('scan-expense-category').value = 'Fuel Expenses|100';
+                document.getElementById('scan-expense-amount').value = '';
+                document.getElementById('scan-expense-date').value = new Date().toISOString().split('T')[0];
+                document.getElementById('ocr-loading').style.display = 'none';
+                document.getElementById('scan-expense-modal').style.display = 'block';
+                document.getElementById('scan-expense-file').focus(); // OPTIMIZATION
+            });
+
+            document.getElementById('close-scan-expense-modal').addEventListener('click', () => document.getElementById('scan-expense-modal').style.display = 'none');
+            document.getElementById('cancel-scan-btn').addEventListener('click', () => document.getElementById('scan-expense-modal').style.display = 'none');
+
+            document.getElementById('scan-expense-file').addEventListener('change', async () => {
+                const fileInput = document.getElementById('scan-expense-file');
+                if (!fileInput.files.length) return;
+
+                const file = fileInput.files[0];
+                document.getElementById('ocr-loading').style.display = 'block';
+
+                try {
+                    const { data: { text } } = await Tesseract.recognize(file, 'eng');
+                    const extractedData = parseBillText(text);
+                    document.getElementById('scan-expense-category').value = extractedData.category || document.getElementById('scan-expense-category').value; // Keep current if not found
+                    document.getElementById('scan-expense-amount').value = extractedData.amount || '';
+                    document.getElementById('scan-expense-date').value = extractedData.date || new Date().toISOString().split('T')[0];
+                } catch (error) {
+                    console.error('OCR Error:', error);
+                    alert('Failed to process bill. Please enter details manually.');
+                } finally {
+                    document.getElementById('ocr-loading').style.display = 'none';
+                }
+            });
+
+            function parseBillText(text) {
+                const lines = text.toLowerCase().split('\n');
+                let amount = null, date = '', category = null; // Use null to indicate not found
+
+                // More robust amount regex, looks for common currency symbols and patterns.
+                // Tries to find the largest number that looks like an amount.
+                const amountRegexes = [
+                    /(?:total|amount|subtotal|paid|montant|valeur)\s*[:\s]*\$?€?£?(\d{1,3}(?:[,\s]\d{3})*\.\d{2}|\d+\.\d{2}|\d{1,3}(?:[,\s]\d{3})*|\d+)/i,
+                    /\$?€?£?(\d{1,3}(?:[,\s]\d{3})*\.\d{2}|\d+\.\d{2})/i // General amount pattern
+                ];
+                
+                let potentialAmounts = [];
+                for (const line of lines) {
+                    for(const regex of amountRegexes) {
+                        const match = line.match(regex);
+                        if (match && match[1]) {
+                            potentialAmounts.push(parseFloat(match[1].replace(',','')));
+                        }
+                    }
+                }
+                if (potentialAmounts.length > 0) {
+                     amount = Math.max(...potentialAmounts.filter(a => !isNaN(a) && a > 0)); // Often the largest is the total
+                }
+
+
+                // Date regex: d/m/y, d-m-y, y/m/d, y-m-d, month day, year
+                const dateRegex = /(\d{1,2}[\/-]\d{1,2}[\/-](\d{2,4}))|(\d{4}[\/-]\d{1,2}[\/-]\d{1,2})|((?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{1,2}(?:st|nd|rd|th)?(?:,\s*)?\d{4})/i;
+                for (const line of lines) {
+                     const dateMatch = line.match(dateRegex);
+                     if (dateMatch) {
+                         date = parseDate(dateMatch[0]);
+                         if(date) break; // Take first valid date found
+                     }
+                }
+
+
+                const categories = {
+                    'Fuel Expenses|100': ['gas', 'fuel', 'petrol', 'station', 'essence', 'carburant'],
+                    'Restaurant/Protocol|50': ['restaurant', 'cafe', 'dining', 'food', 'meal', 'repas', 'nourriture'],
+                    'Office Expenses|100': ['office', 'supplies', 'stationery', 'bureau', 'fournitures'],
+                    'Hotel|100': ['hotel', 'motel', 'inn', 'lodging', 'hébergement'],
+                    'Dental|100': ['dental', 'dentist', 'orthodontist', 'dentaire']
+                };
+
+                for (const line of lines) {
+                    for (const [cat, keywords] of Object.entries(categories)) {
+                        if (keywords.some(k => line.includes(k))) {
+                            category = cat;
+                            break;
+                        }
+                    }
+                    if (category) break; // Take first category found
+                }
+                return { amount, date, category };
+            }
+
+            function parseDate(dateStr) {
+                if (!dateStr) return '';
+                try {
+                    // Attempt to standardize common date formats
+                    let d = dateStr.toLowerCase().replace(/,/g, '');
+                    // YYYY-MM-DD or YYYY/MM/DD
+                    if (/^\d{4}[\/-]\d{1,2}[\/-]\d{1,2}$/.test(d)) {
+                        const parts = d.split(/[\/-]/);
+                        return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+                    }
+                    // DD-MM-YYYY or DD/MM/YYYY
+                    if (/^\d{1,2}[\/-]\d{1,2}[\/-]\d{4}$/.test(d)) {
+                        const parts = d.split(/[\/-]/);
+                        return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                    }
+                    // DD-MM-YY or DD/MM/YY
+                    if (/^\d{1,2}[\/-]\d{1,2}[\/-]\d{2}$/.test(d)) {
+                        const parts = d.split(/[\/-]/);
+                        return `20${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                    }
+                    // Month Day Year (e.g., Jan 1 2023, january 01 2023)
+                    const monthDate = new Date(dateStr); // Let JS try to parse it
+                    if (!isNaN(monthDate.valueOf())) {
+                        return monthDate.toISOString().split('T')[0];
+                    }
+
+                } catch (e) { console.warn("Could not parse date:", dateStr); }
+                return ''; // Return empty if unparseable
+            }
+
+            document.getElementById('save-scan-btn').addEventListener('click', () => {
+                const fileInput = document.getElementById('scan-expense-file');
+                if (!fileInput.files.length) return alert('Please capture or upload a bill.');
+
+                const [category, deductiblePercentage] = document.getElementById('scan-expense-category').value.split('|');
+                const amount = parseFloat(document.getElementById('scan-expense-amount').value) || 0;
+                const date = document.getElementById('scan-expense-date').value;
+
+                if (!amount || amount <= 0) {
+                    alert('Please ensure a valid positive amount is filled.');
+                    document.getElementById('scan-expense-amount').focus();
+                    return;
+                }
+                if (!date) {
+                    alert('Please ensure the date is filled.');
+                    document.getElementById('scan-expense-date').focus();
+                    return;
+                }
+
+
+                const file = fileInput.files[0];
+                const reader = new FileReader();
+                reader.onload = e => {
+                    const imageData = e.target.result;
+                    const expenseId = expenseIdCounter++;
+                    const scanData = { expenseId, category, date, image: imageData };
+                    
+                    if (!db) {
+                        alert("Database not ready. Please try again in a moment.");
+                        return;
+                    }
+                    const transaction = db.transaction(["scans"], "readwrite");
+                    const store = transaction.objectStore("scans");
+                    const request = store.add(scanData);
+
+                    request.onsuccess = () => {
+                        expensesData.push({
+                            id: expenseId,
+                            category,
+                            amount,
+                            deductiblePercentage: parseInt(deductiblePercentage),
+                            date,
+                            hasScan: true
+                        });
+                        document.getElementById('scan-expense-modal').style.display = 'none';
+                        updateExpensesTable();
+                    };
+                    request.onerror = (event) => {
+                        console.error("Error saving scan to DB:", event.target.error);
+                        alert("Error saving scan. Please try again.");
+                        // Decrement counter if ID was not used
+                        expenseIdCounter--;
+                    };
+                };
+                reader.onerror = () => {
+                    alert("Error reading file. Please try again.");
+                };
+                reader.readAsDataURL(file);
+            });
+
+            window.viewScan = expenseId => {
+                if (!db) {
+                    alert("Database not ready. Please try again in a moment.");
+                    return;
+                }
+                const transaction = db.transaction(["scans"], "readonly");
+                const request = transaction.objectStore("scans").get(expenseId);
+                request.onsuccess = event => {
+                    const scanData = event.target.result;
+                    if (scanData) {
+                        document.getElementById('scanned-image').src = scanData.image;
+                        document.getElementById('view-scan-modal').style.display = 'block';
+                    } else {
+                        alert('Scan not found.');
+                    }
+                };
+                request.onerror = (event) => {
+                    console.error("Error fetching scan from DB:", event.target.error);
+                    alert("Error fetching scan.");
+                };
+            };
+
+            document.getElementById('close-view-scan-modal').addEventListener('click', () => document.getElementById('view-scan-modal').style.display = 'none');
+            document.getElementById('close-view-scan-btn').addEventListener('click', () => document.getElementById('view-scan-modal').style.display = 'none');
+
+            function loadScansOnStartup() {
+                 if (!db) return; // DB not ready
+                const transaction = db.transaction(["scans"], "readonly");
+                const request = transaction.objectStore("scans").getAll();
+                request.onsuccess = event => {
+                    const scans = event.target.result;
+                    scans.forEach(scan => {
+                        // Only add if not already present from localStorage (e.g., if amount was manually entered)
+                        // This logic assumes that if an expense with this ID exists, it's the same one.
+                        // A more robust check might compare more fields or rely on hasScan flag.
+                        const existingExpense = expensesData.find(e => e.id === scan.expenseId);
+                        if (existingExpense) {
+                            existingExpense.hasScan = true; // Ensure hasScan is true
+                             if(existingExpense.amount === 0 && scan.amount) { // If local amount is 0, update from scan if available (OCR might have missed it)
+                                existingExpense.amount = scan.amount;
+                            }
+                        } else {
+                             // Add if no local entry exists for this scan
+                            expensesData.push({
+                                id: scan.expenseId,
+                                category: scan.category,
+                                amount: scan.amount || 0, // Use scanned amount if available, else 0
+                                deductiblePercentage: 100, // Default, might need to parse from category if stored
+                                date: scan.date,
+                                hasScan: true
+                            });
+                        }
+                        if (scan.expenseId >= expenseIdCounter) expenseIdCounter = scan.expenseId + 1;
+                    });
+                    updateExpensesTable(); // Update table after potentially merging/adding scans
+                    updateSummary(); // Ensure summary is also updated
+                };
+                request.onerror = (event) => {
+                    console.error("Error loading scans on startup:", event.target.error);
+                }
+            }
+
+            function updateSummary() {
+                const totalRevenue = revenueData.reduce((sum, e) => sum + e.amount, 0);
+                const totalExpenses = expensesData.reduce((sum, e) => sum + e.amount, 0);
+                document.getElementById('summary-revenue').textContent = `$${totalRevenue.toFixed(2)}`;
+                document.getElementById('summary-expenses').textContent = `$${totalExpenses.toFixed(2)}`;
+                document.getElementById('summary-income').textContent = `$${(totalRevenue - totalExpenses).toFixed(2)}`;
+            }
+
+            // Initial Load
+            updateRevenueTable();
+            updateExpensesTable(); // This will be called again after scans load if DB is ready
+        });
+    </script>
+    <!-- Add the PWA setup script here -->
+    <script>
+        // Manifest setup
+        const manifest = {
+            "name": "Expenses Report FI", // Slightly changed name for potential refresh
+            "short_name": "ExpensesFI",
+            "start_url": ".",
+            "display": "standalone",
+            "background_color": "#ffffff",
+            "theme_color": "#4B5EAA",
+            "icons": [
+                {
+                    "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS3GwHAAAApklEQVR4nO3BMQEAAADCoPVPbQ0PoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPCwAbnAAT2gYf8AAAAASUVORK5CYII=", // A generic 192x192 icon (replace with your actual icon base64)
+                    "sizes": "192x192",
+                    "type": "image/png"
+                },
+                { // ADDED: Larger icon for better PWA experience
+                    "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAgAAAAIACAYAAAD0eZ/),AAAAy0lEQVR4nO3BAQ0AAADCoPdPbQ43oAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB4NMCAAEvAC9Z44XAAAAAASUVORK5CYII=", // A generic 512x512 icon (replace)
+                    "sizes": "512x512",
+                    "type": "image/png"
+                }
+            ]
+        };
+        const stringManifest = JSON.stringify(manifest);
+        const blob = new Blob([stringManifest], { type: 'application/json' });
+        const manifestURL = URL.createObjectURL(blob);
+        document.querySelector('link[rel="manifest"]').setAttribute('href', manifestURL);
+
+        // Service Worker setup
+        if ('serviceWorker' in navigator) {
+            const swCode = `
+                const CACHE_NAME = 'expenses-cache-v2'; // Updated cache name for new version
+                const urlsToCache = [
+                    '.',
+                    'https://unpkg.com/tesseract.js@v5.1.0/dist/tesseract.min.js'
+                    // Add other critical assets here if any, like a specific icon file
+                ];
+
+                self.addEventListener('install', event => {
+                    event.waitUntil(
+                        caches.open(CACHE_NAME)
+                            .then(cache => {
+                                console.log('Opened cache');
+                                return cache.addAll(urlsToCache);
+                            })
+                    );
+                    self.skipWaiting(); // Force activation of new service worker
+                });
+
+                self.addEventListener('activate', event => {
+                    // Clean up old caches
+                    event.waitUntil(
+                        caches.keys().then(cacheNames => {
+                            return Promise.all(
+                                cacheNames.filter(cacheName => cacheName !== CACHE_NAME)
+                                          .map(cacheName => caches.delete(cacheName))
+                            );
+                        })
+                    );
+                    return self.clients.claim(); // Take control of uncontrolled clients
+                });
+
+                self.addEventListener('fetch', event => {
+                    event.respondWith(
+                        caches.match(event.request)
+                            .then(response => {
+                                // Cache hit - return response
+                                if (response) {
+                                    return response;
+                                }
+                                // Not in cache - fetch from network, then cache it
+                                return fetch(event.request).then(
+                                    networkResponse => {
+                                        // Check if we received a valid response
+                                        if(!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+                                            return networkResponse;
+                                        }
+                                        // IMPORTANT: Clone the response. A response is a stream
+                                        // and because we want the browser to consume the response
+                                        // as well as the cache consuming the response, we need
+                                        // to clone it so we have two streams.
+                                        const responseToCache = networkResponse.clone();
+                                        caches.open(CACHE_NAME)
+                                            .then(cache => {
+                                                // Only cache GET requests
+                                                if (event.request.method === 'GET') {
+                                                    cache.put(event.request, responseToCache);
+                                                }
+                                            });
+                                        return networkResponse;
+                                    }
+                                ).catch(error => {
+                                    console.error('Fetching failed:', error);
+                                    // You could return a fallback page here if offline and not cached
+                                });
+                            })
+                    );
+                });
+            `;
+            const swBlob = new Blob([swCode], { type: 'application/javascript' });
+            const swURL = URL.createObjectURL(swBlob);
+            navigator.serviceWorker.register(swURL).then(registration => {
+                console.log('Service Worker registered with scope:', registration.scope);
+            }).catch(error => {
+                console.error('Service Worker registration failed:', error);
+            });
+        }
+    </script>
+</body>
+</html>
